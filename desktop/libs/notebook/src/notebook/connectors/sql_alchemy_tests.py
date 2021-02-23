@@ -327,7 +327,7 @@ class TestApi(object):
           # Trim
           engine = SqlAlchemyApi(self.user, interpreter).execute(notebook, snippet)
 
-          execute.assert_called_with('SELECT 1')
+          execute.assert_called_with('SELECT 1', async_=True)
 
           # No Trim
           interpreter['options']['url'] = 'mysql://hue:3306/hue'
@@ -336,7 +336,7 @@ class TestApi(object):
 
           engine = SqlAlchemyApi(self.user, interpreter).execute(notebook, snippet)
 
-          execute.assert_called_with('SELECT 1;')
+          execute.assert_called_with('SELECT 1;', async_=True)
 
 
   def test_get_log(self):

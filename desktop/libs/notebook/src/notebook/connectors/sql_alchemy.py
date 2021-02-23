@@ -67,6 +67,7 @@ from django.core.cache import caches
 from django.utils.translation import ugettext as _
 from sqlalchemy import create_engine, inspect, Table, MetaData
 from sqlalchemy.exc import OperationalError, UnsupportedCompilationError, CompileError
+from TCLIService.ttypes import TOperationState
 
 from desktop.lib import export_csvxls
 from desktop.lib.i18n import force_unicode
@@ -251,9 +252,25 @@ class SqlAlchemyApi(Api):
         }
       )
 
-    result = connection.execute(statement)
+    result = connection.execute(statement, async_=True)
 
-    logs = [message for message in result.cursor.fetch_logs()] if result.cursor and hasattr(result.cursor, 'fetch_logs') else []
+    logs = []
+
+    if result.cursor and hasattr(result.cursor, 'poll'):
+      status = result.cursor.poll().operationState
+
+      if result.cursor and hasattr(result.cursor, 'fetch_logs'):
+        temp_logs = result.cursor.fetch_logs()
+        for message in temp_logs:
+          logs.append(message)
+
+        while status in (TOperationState.INITIALIZED_STATE, TOperationState.RUNNING_STATE):
+          temp_logs = result.cursor.fetch_logs()
+          for message in temp_logs:
+            logs.append(message)
+
+          status = cursor.poll().operationState
+
     cache = {
       'logs': logs,
       'connection': connection,
